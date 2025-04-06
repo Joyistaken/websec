@@ -19,9 +19,19 @@ class UsersController extends Controller {
 
     public function list(Request $request) {
         if(!auth()->user()->hasPermissionTo('show_users'))abort(401);
+        
         $query = User::select('*');
+        
+        // If the current user is an Employee (not an Admin), only show Customers
+        if(auth()->user()->hasRole('Employee') && !auth()->user()->hasRole('Admin')) {
+            $query->whereHas('roles', function($q) {
+                $q->where('name', 'Customer');
+            });
+        }
+        
         $query->when($request->keywords, 
         fn($q)=> $q->where("name", "like", "%$request->keywords%"));
+        
         $users = $query->get();
         return view('users.list', compact('users'));
     }
@@ -49,7 +59,11 @@ class UsersController extends Controller {
 	    $user->name = $request->name;
 	    $user->email = $request->email;
 	    $user->password = bcrypt($request->password); //Secure
+	    $user->credit = 0; // Initialize credit with zero
 	    $user->save();
+	    
+	    // Assign Customer role to new user
+	    $user->assignRole('Customer');
 
         return redirect('/');
     }
@@ -184,5 +198,85 @@ class UsersController extends Controller {
         $user->save();
 
         return redirect(route('profile', ['user'=>$user->id]));
+    }
+
+    public function createEmployee(Request $request)
+    {
+        if(!auth()->user()->hasPermissionTo('create_employees')) abort(401);
+        
+        return view('users.create_employee');
+    }
+    
+    public function storeEmployee(Request $request)
+    {
+        if(!auth()->user()->hasPermissionTo('create_employees')) abort(401);
+        
+        try {
+            $this->validate($request, [
+                'name' => ['required', 'string', 'min:5'],
+                'email' => ['required', 'email', 'unique:users'],
+                'password' => ['required', 'confirmed', Password::min(8)->numbers()->letters()->mixedCase()->symbols()],
+            ]);
+        }
+        catch(\Exception $e) {
+            return redirect()->back()->withInput($request->input())->withErrors('Invalid employee information.');
+        }
+        
+        $user = new User();
+        $user->name = $request->name;
+        $user->email = $request->email;
+        $user->password = bcrypt($request->password);
+        $user->credit = 0;
+        $user->save();
+        
+        // Assign Employee role
+        $user->assignRole('Employee');
+        
+        return redirect()->route('users')->with('success', 'Employee created successfully');
+    }
+    
+    public function addCredit(Request $request, User $user)
+    {
+        if(!auth()->user()->hasPermissionTo('add_credit')) abort(401);
+        
+        if(!$user->hasRole('Customer')) {
+            return redirect()->back()->withErrors('Credit can only be added to customers');
+        }
+        
+        return view('users.add_credit', compact('user'));
+    }
+    
+    public function storeCredit(Request $request, User $user)
+    {
+        if(!auth()->user()->hasPermissionTo('add_credit')) abort(401);
+        
+        if(!$user->hasRole('Customer')) {
+            return redirect()->back()->withErrors('Credit can only be added to customers');
+        }
+        
+        $this->validate($request, [
+            'amount' => ['required', 'numeric', 'min:0.01'],
+        ]);
+        
+        // Ensure we're only adding positive amounts for security
+        $amount = abs($request->amount);
+        
+        $user->credit += $amount;
+        $user->save();
+        
+        return redirect()->route('profile', ['user' => $user->id])
+            ->with('success', "Added {$amount} credit to {$user->name}'s account");
+    }
+    
+    public function listCustomers(Request $request)
+    {
+        if(!auth()->user()->hasRole(['Admin', 'Employee'])) abort(401);
+        
+        $query = User::role('Customer')->select('*');
+        $query->when($request->keywords, 
+            fn($q) => $q->where("name", "like", "%$request->keywords%"));
+        $customers = $query->get();
+        
+        return view('users.customers', compact('customers'));
     }
 } 

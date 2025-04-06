@@ -1,9 +1,9 @@
 @extends('layouts.master')
-@section('title', 'Users')
+@section('title', auth()->user()->hasRole('Employee') && !auth()->user()->hasRole('Admin') ? 'Customer List' : 'Users')
 @section('content')
 <div class="row mt-2">
     <div class="col col-10">
-        <h1>Users</h1>
+        <h1>{{ auth()->user()->hasRole('Employee') && !auth()->user()->hasRole('Admin') ? 'Customer List' : 'Users' }}</h1>
     </div>
 </div>
 <form>

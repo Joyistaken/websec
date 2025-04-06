@@ -11,6 +11,25 @@ class Product extends Model  {
         'price',
         'model',
         'description',
-        'photo'
+        'photo',
+        'stock_quantity'
     ];
+    
+    /**
+     * Get the purchases associated with the product.
+     */
+    public function purchases()
+    {
+        return $this->hasMany(Purchase::class);
+    }
+    
+    /**
+     * Get all users who purchased this product.
+     */
+    public function purchasedByUsers()
+    {
+        return $this->belongsToMany(User::class, 'purchases')
+            ->withPivot('price_paid')
+            ->withTimestamps();
+    }
 }

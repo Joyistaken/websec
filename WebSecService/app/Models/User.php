@@ -25,6 +25,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'credit',
     ];
 
     /**
@@ -47,6 +48,25 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'credit' => 'decimal:2',
         ];
+    }
+    
+    /**
+     * Get the purchases associated with the user.
+     */
+    public function purchases()
+    {
+        return $this->hasMany(Purchase::class);
+    }
+    
+    /**
+     * Get all purchased products for the user.
+     */
+    public function purchasedProducts()
+    {
+        return $this->belongsToMany(Product::class, 'purchases')
+            ->withPivot('price_paid')
+            ->withTimestamps();
     }
 }

@@ -3,6 +3,12 @@
 @section('content')
 <div class="row">
     <div class="m-4 col-sm-6">
+        @if(session('success'))
+            <div class="alert alert-success">
+                {{ session('success') }}
+            </div>
+        @endif
+        
         <table class="table table-striped">
             <tr>
                 <th>Name</th><td>{{$user->name}}</td>
@@ -10,6 +16,11 @@
             <tr>
                 <th>Email</th><td>{{$user->email}}</td>
             </tr>
+            @if($user->hasRole('Customer'))
+            <tr>
+                <th>Credit Balance</th><td>${{number_format($user->credit, 2)}}</td>
+            </tr>
+            @endif
             <tr>
                 <th>Roles</th>
                 <td>
@@ -22,7 +33,7 @@
                 <th>Permissions</th>
                 <td>
                     @foreach($permissions as $permission)
-                        <span class="badge bg-success">{{$permission->display_name}}</span>
+                        <span class="badge bg-success">{{$permission->name}}</span>
                     @endforeach
                 </td>
             </tr>
@@ -30,6 +41,13 @@
 
         <div class="row">
             <div class="col col-6">
+                @if($user->hasRole('Customer') && auth()->user()->hasPermissionTo('add_credit'))
+                    <a href="{{ route('customers.credit', $user->id) }}" class="btn btn-info">Add Credit</a>
+                @endif
+                
+                @if($user->hasRole('Customer') && auth()->id()==$user->id && auth()->user()->hasPermissionTo('view_purchases'))
+                    <a href="{{ route('purchases.list') }}" class="btn btn-info">View My Purchases</a>
+                @endif
             </div>
             @if(auth()->user()->hasPermissionTo('admin_users')||auth()->id()==$user->id)
             <div class="col col-4">

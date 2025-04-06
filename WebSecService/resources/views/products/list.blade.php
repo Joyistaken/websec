@@ -1,5 +1,5 @@
 @extends('layouts.master')
-@section('title', 'Test Page')
+@section('title', 'Products')
 @section('content')
 <div class="row mt-2">
     <div class="col col-10">
@@ -11,6 +11,19 @@
         @endcan
     </div>
 </div>
+
+@if(session('success'))
+    <div class="alert alert-success">
+        {{ session('success') }}
+    </div>
+@endif
+
+@if(session('error'))
+    <div class="alert alert-danger">
+        {{ session('error') }}
+    </div>
+@endif
+
 <form>
     <div class="row">
         <div class="col col-sm-2">
@@ -55,9 +68,18 @@
                 </div>
                 <div class="col col-sm-12 col-lg-8 mt-3">
                     <div class="row mb-2">
-					    <div class="col-8">
+					    <div class="col-6">
 					        <h3>{{$product->name}}</h3>
 					    </div>
+                        <div class="col-2">
+                            @can('buy_products')
+                                @if($product->stock_quantity > 0)
+                                    <a href="{{ route('products.buy', $product->id) }}" class="btn btn-primary form-control">Buy</a>
+                                @else
+                                    <button class="btn btn-secondary form-control" disabled>Out of Stock</button>
+                                @endif
+                            @endcan
+                        </div>
 					    <div class="col col-2">
                             @can('edit_products')
 					        <a href="{{route('products_edit', $product->id)}}" class="btn btn-success form-control">Edit</a>
@@ -74,7 +96,8 @@
                         <tr><th width="20%">Name</th><td>{{$product->name}}</td></tr>
                         <tr><th>Model</th><td>{{$product->model}}</td></tr>
                         <tr><th>Code</th><td>{{$product->code}}</td></tr>
-                        <tr><th>Price</th><td>{{$product->price}}</td>
+                        <tr><th>Price</th><td>${{number_format($product->price, 2)}}</td></tr>
+                        <tr><th>Stock</th><td>{{$product->stock_quantity}} available</td></tr>
                         <tr><th>Description</th><td>{{$product->description}}</td></tr>
                     </table>
                 </div>
